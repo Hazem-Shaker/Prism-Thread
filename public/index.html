@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
+      </div>
+      <div class="sidebar-list" id="conversationList"></div>
+    </aside>
+
+    <!-- Main chat area -->
+    <main class="chat-main">
+      <div class="chat-header" id="chatHeader">
+        <button class="sidebar-toggle" id="sidebarToggle">&#9776;</button>
+        <span class="chat-title" id="chatTitle">Select or start a conversation</span>
+        <div class="model-selector" id="modelSelector">
+          <button class="model-selector-btn" id="modelSelectorBtn" type="button">
+            <span class="model-selector-label" id="modelSelectorLabel">Select model</span>
+            <svg class="model-selector-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="model-dropdown" id="modelDropdown"></div>
+        </div>
+      </div>
+
+      <div class="messages-container" id="messagesContainer">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">&#10024;</div>
+          <h2>AI Chat</h2>
+          <p>Start a new conversation or select one from the sidebar.</p>
+        </div>
+      </div>
+
+      <div class="input-area" id="inputArea">
+        <!-- Attachment preview area -->
+        <div class="attachment-preview" id="attachmentPreview"></div>
+
+        <form class="input-form" id="messageForm">
+          <!-- Attach button -->
+          <button type="button" class="icon-btn attach-btn" id="attachBtn" title="Attach file or image">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          <input type="file" id="fileInput" hidden accept="image/*,.pdf,.txt,.md,.csv,.json,.xml,.yaml,.yml,.log" />
+
+          <!-- Mic button -->
+          <button type="button" class="icon-btn mic-btn" id="micBtn" title="Voice input">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+              <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+
+          <textarea
+            id="messageInput"
+            placeholder="Send a message..."
+            rows="1"
+            disabled
+          ></textarea>
+          <button type="submit" id="sendBtn" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
