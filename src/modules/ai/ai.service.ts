@@ -39,11 +39,11 @@ const MODEL_CATALOG: ModelEntry[] = [
     capabilities: ["chat", "file"],
   },
   {
-    id: "black-forest-labs-FLUX-1-dev",
-    name: "black-forest-labs/FLUX.1-dev",
-    provider: "Hugging Face",
-    apiKeyField: "huggingfaceApiKey",
-    providerModelId: "black-forest-labs/FLUX.1-dev",
+    id: "gemini-3-flash-image",
+    name: "Image (Gemini or free Pollinations)",
+    provider: "Google / Pollinations",
+    apiKeyField: "geminiApiKey",
+    providerModelId: "gemini-2.5-flash-image",
     capabilities: ["imageGen"],
   },
 ];
@@ -66,7 +66,7 @@ export function getAvailableModels(): ModelInfo[] {
     id: m.id,
     name: m.name,
     provider: m.provider,
-    available: !!env[m.apiKeyField],
+    available: m.id === "gemini-3-flash-image" ? true : !!env[m.apiKeyField],
     capabilities: m.capabilities,
   }));
 }

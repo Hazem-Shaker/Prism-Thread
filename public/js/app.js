@@ -6,6 +6,10 @@ let isLoading = false;
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
+/** Circular avatars use SVG marks so “U” / “AI” text doesn’t distort at small sizes. */
+const AVATAR_USER_SVG = `<svg class="message-avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0114 0"/></svg>`;
+const AVATAR_MODEL_SVG = `<svg class="message-avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`;
+
 const conversationList = $("#conversationList");
 const messagesContainer = $("#messagesContainer");
 const emptyState = $("#emptyState");
@@ -16,6 +20,15 @@ const newChatBtn = $("#newChatBtn");
 const chatTitle = $("#chatTitle");
 const sidebarToggle = $("#sidebarToggle");
 const sidebar = $("#sidebar");
+const sidebarBackdrop = $("#sidebarBackdrop");
+
+function setSidebarOpen(open) {
+  sidebar.classList.toggle("open", open);
+  if (sidebarBackdrop) {
+    sidebarBackdrop.classList.toggle("visible", open);
+    sidebarBackdrop.setAttribute("aria-hidden", open ? "false" : "true");
+  }
+}
 const modelSelector = $("#modelSelector");
 const modelSelectorBtn = $("#modelSelectorBtn");
 const modelSelectorLabel = $("#modelSelectorLabel");
@@ -32,17 +45,24 @@ let mediaRecorder = null;
 let isRecording = false;
 
 // ── Sidebar toggle (mobile) ──
-sidebarToggle.addEventListener("click", () => {
-  sidebar.classList.toggle("open");
+sidebarToggle.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setSidebarOpen(!sidebar.classList.contains("open"));
 });
+
+if (sidebarBackdrop) {
+  sidebarBackdrop.addEventListener("click", () => setSidebarOpen(false));
+}
 
 document.addEventListener("click", (e) => {
   if (
     sidebar.classList.contains("open") &&
     !sidebar.contains(e.target) &&
-    e.target !== sidebarToggle
+    e.target !== sidebarToggle &&
+    e.target !== sidebarBackdrop &&
+    !modelSelector.contains(e.target)
   ) {
-    sidebar.classList.remove("open");
+    setSidebarOpen(false);
   }
 });
 
@@ -216,7 +236,7 @@ function renderSidebar(conversations) {
 
     item.querySelector(".conversation-item-title").addEventListener("click", () => {
       selectConversation(conv._id);
-      sidebar.classList.remove("open");
+      setSidebarOpen(false);
     });
 
     item.querySelector(".delete-btn").addEventListener("click", async (e) => {
@@ -237,7 +257,7 @@ newChatBtn.addEventListener("click", async () => {
     renderMessages([]);
     setInputEnabled(true);
     chatTitle.textContent = "New Chat";
-    sidebar.classList.remove("open");
+    setSidebarOpen(false);
     messageInput.focus();
   } catch (err) {
     console.error("Failed to create conversation:", err);
@@ -527,7 +547,8 @@ function appendMessage(role, content, opts = {}) {
   const el = document.createElement("div");
   el.className = `message ${role}`;
 
-  const avatarLabel = role === "user" ? "U" : "AI";
+  const avatarInner = role === "user" ? AVATAR_USER_SVG : AVATAR_MODEL_SVG;
+  const avatarLabel = role === "user" ? "You" : "Assistant";
   const rendered = role === "model" ? marked.parse(content) : escapeHtml(content);
 
   let attachmentHtml = "";
@@ -565,7 +586,7 @@ function appendMessage(role, content, opts = {}) {
 
   el.innerHTML = `
     <div class="message-row">
-      <div class="message-avatar">${avatarLabel}</div>
+      <div class="message-avatar" role="img" aria-label="${avatarLabel}">${avatarInner}</div>
       <div class="message-content">
         ${attachmentHtml}
         ${rendered}
@@ -670,7 +691,7 @@ function appendTypingIndicator() {
   el.className = "message model";
   el.innerHTML = `
     <div class="message-row">
-      <div class="message-avatar">AI</div>
+      <div class="message-avatar" role="img" aria-label="Assistant">${AVATAR_MODEL_SVG}</div>
       <div class="message-content">
         <div class="thinking-indicator">
           <span class="thinking-text">Thinking</span>

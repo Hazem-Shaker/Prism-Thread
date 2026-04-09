@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import * as chatService from "./chat.service";
 import { getAvailableModels } from "../ai/ai.service";
-import { generateImage } from "../ai/providers/black-forest-labs-FLUX-1-dev.provider";
+import { generateImage } from "../ai/image-generation.service";
 
 interface ConversationParams {
   id: string;

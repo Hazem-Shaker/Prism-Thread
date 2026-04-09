@@ -1,6 +1,9 @@
+import dns from "node:dns";
 import app from "./app";
 import { connectDB } from "./config/db";
 import { env } from "./config/env";
+
+dns.setDefaultResultOrder("ipv4first");
 
 async function main(): Promise<void> {
   await connectDB();
