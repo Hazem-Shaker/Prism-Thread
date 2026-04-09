@@ -1,6 +1,6 @@
-# PrismThread
+﻿# PrismThread
 
-**PrismThread** is a full-stack AI chat workspace: pick from several language models, attach images and documents, generate images with FLUX, dictate with speech-to-text, and listen with the browser’s text-to-speech—while **MongoDB** keeps your conversations.
+**PrismThread** is a full-stack AI chat workspace: pick from several language models, attach images and documents, generate images with Gemini or Pollinations, dictate with speech-to-text, and listen with the browser’s text-to-speech—while **MongoDB** keeps your conversations.
 
 Built with **Express**, **TypeScript**, and a static single-page UI served from `public/`.
 
@@ -16,7 +16,7 @@ Built with **Express**, **TypeScript**, and a static single-page UI served from 
 - [Scripts](#scripts)
 - [REST API](#rest-api)
 - [Model capabilities](#model-capabilities)
-- [Image generation (Hugging Face)](#image-generation-hugging-face)
+- [Image generation](#image-generation)
 - [Project structure](#project-structure)
 - [Security notes](#security-notes)
 - [Troubleshooting](#troubleshooting)
@@ -31,7 +31,7 @@ Built with **Express**, **TypeScript**, and a static single-page UI served from 
 | **Multi-model chat** | Switch models per conversation: Google Gemini, Groq, OpenRouter (see [Model capabilities](#model-capabilities)). |
 | **Vision** | Send images with your message when using a model that supports **vision** (Gemini). |
 | **File upload** | Attach **images** (JPEG, PNG, GIF, WebP), **PDFs** (text extracted server-side), or **text-like files** (`.txt`, `.md`, `.csv`, `.json`, etc.). |
-| **Image generation** | With the Hugging Face FLUX model selected, generate images from a prompt; results are stored under `public/generated/` and shown in the thread. |
+| **Image generation** | With the Image model selected, generate images from a prompt using Gemini Flash or free Pollinations fallback; results are stored under `public/generated/` and shown in the thread. |
 | **Speech-to-text** | Record from the mic; audio is sent to **Groq Whisper** and the transcript is inserted into the composer. |
 | **Read aloud** | Use the browser **Speech Synthesis** API on assistant messages. |
 | **Persistence** | Conversations and messages are stored in **MongoDB** (Mongoose). |
@@ -47,7 +47,7 @@ Browser (SPA in public/)  ──HTTP JSON / multipart──►  Express API
                     ┌─────────────────────────────────────┼─────────────────────────────────────┐
                     ▼                                     ▼                                     ▼
               MongoDB                              External LLM APIs                    File / audio handling
-         (conversations)                    (Gemini, Groq, OpenRouter, HF)              (multer, pdf-parse, Groq STT)
+         (conversations)                    (Gemini, Groq, OpenRouter, Pollinations)    (multer, pdf-parse, Groq STT)
 ```
 
 - **Frontend**: vanilla HTML/CSS/JS in `public/` (no separate build step for the UI).
@@ -114,11 +114,10 @@ Create a `.env` file in the project root. **Do not commit it** (it is listed in 
 |----------|----------------|-------------|
 | `MONGODB_URI` | App | MongoDB connection string. Default in code: `mongodb://localhost:27017/gemini-chat` if unset. |
 | `PORT` | Optional | HTTP port. Default: `3000`. |
-| `GEMINI_API_KEY` | Gemini models | [Google AI Studio / Cloud](https://aistudio.google.com/apikey) |
+| `GEMINI_API_KEY` | Gemini models | [Google AI Studio / Cloud](https://aistudio.google.com/apikey). Also used for image generation quota. |
 | `GROQ_API_KEY` | Groq chat + STT | [Groq Console](https://console.groq.com/keys) |
 | `OPENROUTER_API_KEY` | OpenRouter models | [OpenRouter](https://openrouter.ai/keys) |
-| `HUGGINGFACE_API_KEY` or `HF_TOKEN` | FLUX image generation | [Hugging Face token](https://huggingface.co/settings/tokens) with Inference Providers access where applicable |
-| `FAL_API_KEY` | Optional fallback | [Fal dashboard](https://fal.ai/dashboard) if Hugging Face–routed Fal auth fails |
+| `GEMINI_IMAGE_MODEL` | Optional | Try to override the specific valid Gemini image model identifier (defaults to 2.5/3.1 flash image endpoints). |
 | `TOGETHER_API_KEY` | Reserved | Present in config for possible future use; not required by the current catalog |
 
 Tokens are **trimmed** and **surrounding quotes** are stripped when read, so `KEY="value"` in `.env` still works.
@@ -132,8 +131,6 @@ MONGODB_URI=mongodb://localhost:27017/prismthread
 GEMINI_API_KEY=
 GROQ_API_KEY=
 OPENROUTER_API_KEY=
-HUGGINGFACE_API_KEY=
-# FAL_API_KEY=
 ```
 
 Fill in only the keys for the providers you use. The UI lists models and marks which are **available** based on configured keys (`GET /api/models`).
@@ -186,7 +183,7 @@ Base URL: same origin as the app (e.g. `http://localhost:3000`).
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/image/generate` | Body: `{ "prompt": string, "conversationId": string }`. Requires Hugging Face token (and accepted model license). Saves PNG under `public/generated/` and appends a message to the conversation. |
+| `POST` | `/api/image/generate` | Body: `{ "prompt": string, "conversationId": string }`. Saves PNG under `public/generated/` and appends a message to the conversation. |
 
 ---
 
@@ -199,20 +196,16 @@ Capabilities are exposed on each entry from `GET /api/models`.
 | `gemini-flash` | Google | `chat`, `vision`, `file` |
 | `qwen3-32b` | Groq | `chat`, `file` |
 | `step-3.5-flash-free` | OpenRouter | `chat`, `file` |
-| `black-forest-labs-FLUX-1-dev` | Hugging Face | `imageGen` |
+| `gemini-3-flash-image` | Google / Pollinations | `imageGen` |
 
 The frontend uses capabilities to warn when, for example, images are attached without a vision-capable model.
 
 ---
 
-## Image generation (Hugging Face)
+## Image generation
 
-- Open weights on the Hub are **not** the same as unlimited free hosted inference. FLUX runs through **Hugging Face Inference Providers** (often with quotas or billing).
-- Accept the model license on [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-labs/FLUX.1-dev) if prompted.
-- Use a token that can call **Inference Providers**, and configure [Inference Provider order](https://huggingface.co/settings/inference-providers) if needed.
-- This project tries the **HF router** endpoint for Fal FLUX dev first, then falls back to `@huggingface/inference` with `fal-ai`. If you see auth errors, you can set **`FAL_API_KEY`** for a direct Fal retry.
-
-Generated files live in `public/generated/`; that folder is **gitignored**.
+- This project defaults to using the **Gemini API** for high-quality fast image generation if a `GEMINI_API_KEY` is provided. If the quota is exhausted (or if the key is missing entirely), the project automatically falls back to **Pollinations** (a free, keyless community text-to-image API).
+- Generated files live in `public/generated/`; that folder is **gitignored**.
 
 ---
 
@@ -239,7 +232,6 @@ Generated files live in `public/generated/`; that folder is **gitignored**.
 ## Security notes
 
 - **Never commit `.env`** or real API keys. Rotate keys if they are ever exposed.
-- Prefer **fine-grained** Hugging Face tokens with the minimum scopes you need.
 - Run behind HTTPS in production; treat uploaded files as untrusted user content.
 
 ---
@@ -250,7 +242,7 @@ Generated files live in `public/generated/`; that folder is **gitignored**.
 |-------|--------|
 | `EADDRINUSE` on port 3000 | Change `PORT` in `.env` or stop the other process using that port. |
 | Mongo connection errors | Check `MONGODB_URI`, network, and Atlas IP allowlist if applicable. |
-| Image generation / HF errors | Confirm token, Inference Providers permission, model license, optional `FAL_API_KEY`. |
+| Image generation errors | Check network connection. If using Gemini generation, check quota thresholds via Google AI Studio. |
 | STT fails | Ensure `GROQ_API_KEY` is set and the form field name is **`audio`**. |
 | Large payloads | JSON body limit is **20 MB** in `app.ts`; uploads use separate limits (50 MB file, 25 MB audio). |
 
